@@ -167,6 +167,31 @@ class OutcomeTimer extends React.Component<any, any>
                         return true;
                     }
                 }
+
+                var componentToUpdate = this.getAttribute("refreshComponentId", "")
+                //if we were given a component id to update
+                if(componentToUpdate && componentToUpdate.length > 0)
+                {
+                    //preserve this so the promise handler can get it
+                    var self = this;
+
+                    //get the objectDataRequest object from the model
+                    var request = manywho.model.getComponent(this.props.id,   this.props.flowKey).objectDataRequest;
+
+                    //demand the engine re-gets the model and handle the async promise result
+                    manywho.engine.objectDataRequest(this.props.id, request, this.props.flowKey, 0 , null, null, null, null)
+                    .then(function()
+                    {
+                        var component = manywho.model.getComponent(componentToUpdate, self.props.flowKey);
+                        
+                        //did we get a component
+                        if(component)
+                        {
+                            component.objectData=manywho.model.getComponent(self.props.id, self.props.flowKey).objectData;
+                            manywho.engine.render( self.props.flowKey);
+                        }
+                    });
+                }
             }
         }
     }  
