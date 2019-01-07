@@ -1,6 +1,6 @@
 # Outcome Timer
 
-A component that triggers an outcome at a configurable interval.
+A component that triggers an outcome and/or forces another component to update at a configurable interval.
 
 
 ## Setup
