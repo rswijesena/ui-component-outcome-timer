@@ -126,7 +126,7 @@ class OutcomeTimer extends React.Component<any, any>
     {
         const flowState = manywho.state.getComponent(this.componentId, this.flowKey);
         
-        if(flowState.loading)
+        if(flowState && flowState.loading)
         {
             this.timerCounter = 0;
             this.forceUpdate();
