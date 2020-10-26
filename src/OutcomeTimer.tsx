@@ -1,68 +1,13 @@
 
-declare var manywho: any;
-
-manywho.OutcomeTimers = {};
-// this attaches the Ajax handlers to the manywho.CustomComponentOrchestrator or 
-// initialize function if manywho.CustomComponentOrchestrator isnt defined.  
-if(manywho.CustomComponentOrchestrator)
-{
-    manywho.CustomComponentOrchestrator.doneSendHandlers.push(doneHandler);
-}
-else
-{
-    manywho.settings.initialize(
-        {
-        }
-        ,
-        {
-            invoke: 
-            {
-                 done: doneHandler                
-            }
-        }
-    );
-}
-
-function doneHandler()
-{
-    //preserve this so the promise handler can get it
-    var self = this;
-
-    var promises = [];
-    //loop over the array callingupdate on each
-    for(var key in manywho.OutcomeTimers)
-    {
-        var timer : OutcomeTimer = manywho.OutcomeTimers[key];
-
-        if(timer)
-        {
-            promises.push(triggerTimer(timer));
-        }
-    }
-
-    Promise.all(promises);
-}
-
-function triggerTimer(timer : OutcomeTimer)
-{
-    
-    //there should be an attribute to dictate if the component had a model
-    timer.startCounting();
-    return true; 
-}
-
-
-
+import { eLoadingState, FlowComponent } from 'flow-component-model';
 import * as React from 'react';
 import './OutcomeTimer.css';
 
-class OutcomeTimer extends React.Component<any, any> 
-{
-   
-    componentId: string = "";
-    flowKey: string ="";  
-    attributes = new Map<string,any>();
+//declare const manywho: IManywho;
+declare const manywho: any;
 
+export default class OutcomeTimer extends FlowComponent 
+{
     //holder for datarefresh timer
     timerId = -1;
     timerCounter = 0;
@@ -70,49 +15,50 @@ class OutcomeTimer extends React.Component<any, any>
     constructor(props : any)
 	{
         super(props);
-        
-        this.componentId = props.id;
-        this.flowKey = props.flowKey;
-
-        //push attributes into keyed map 
-		var flowModel = manywho.model.getComponent(this.componentId,   this.flowKey);
-		if(flowModel.attributes)
-		{
-			for(var key in flowModel.attributes)
-			{
-				this.attributes.set(key ,flowModel.attributes[key]);
-			}
-        }
-
-        if(flowModel.objectData && flowModel.objectData[0])
-        {
-            manywho.state.setComponent(this.componentId, {objectData: [flowModel.objectData[0]]}, this.flowKey, true);
-        }
+        this.moving = this.moving.bind(this);
+        this.moved = this.moved.bind(this);
     }
 
-    getAttribute(attributeName : string, defaultValue : any)
-	{
-		if(this.attributes.has(attributeName))
-		{
-			return this.attributes.get(attributeName);
-		}
-		else
-		{
-			return defaultValue;
-		}
-	}
-
-    componentDidMount() 
+    
+    async componentDidMount() 
     {   
-        manywho.OutcomeTimers[this.componentId] = this;
+        (manywho as any).eventManager.addBeforeSendListener(this.moving, this.componentId);
+        (manywho as any).eventManager.addDoneListener(this.moved, this.componentId);
+        await super.componentDidMount();
+
+        //attach move listener
+        manywho.event
         this.startCounting();
     }
 
-    componentWillUnmount()
+    async moving(xhr: XMLHttpRequest, request: any) {
+        window.clearInterval(this.timerId);
+        this.timerId = -1;
+        // this handles the new subflow concept.
+        // the flow could have moved to a sub flow and if so we need to reload all data
+        if ((xhr as any).invokeType === 'FORWARD') {
+            //this.getDocuments();
+        }
+    }
+
+    async moved(xhr: XMLHttpRequest, request: any) {
+        if(this.timerId === -1 ) {
+            this.timerId = window.setInterval(this.timerHandler.bind(this), 1000);
+        }
+        // this handles the new subflow concept.
+        // the flow could have moved to a sub flow and if so we need to reload all data
+        if ((xhr as any).invokeType === 'FORWARD') {
+            //this.getDocuments();
+        }
+    }
+
+    async componentWillUnmount()
     {
-        // use timerId from the state to clear the intervals
         clearInterval(this.timerId);
         this.timerId = -1;
+        (manywho as any).eventManager.removeBeforeSendListener(this.componentId);
+        return Promise.resolve();
+        
     }
 
     startCounting()
@@ -122,88 +68,80 @@ class OutcomeTimer extends React.Component<any, any>
     }
 
 
-    timerHandler()
+    async timerHandler()
     {
-        const flowState = manywho.state.getComponent(this.componentId, this.flowKey);
-        
-        if(flowState && flowState.loading)
-        {
-            this.timerCounter = 0;
-            this.forceUpdate();
-        }
-        else
-        {
-            if(this.timerCounter < parseInt(this.getAttribute("refreshIntervalSeconds", 10 )))
+        if(this.loadingState === eLoadingState.ready) {
+            if(this.timerCounter < parseInt(this.getAttribute("refreshIntervalSeconds", "10" )))
             {
                 this.timerCounter++;
                 this.forceUpdate();
             }
             else
             {
-                //reset the counter
-                this.timerCounter = 0;
-
                 //switch off the timer
-                if(this.timerId >= -1)
+                if(this.timerId > -1)
                 {
-                    clearInterval(this.timerId);
+                    window.clearInterval(this.timerId);
                     this.timerId = -1; 
                 }
-                
-                var outcomeToTrigger = this.getAttribute("refreshOutcomeId", "")
-
-                if(outcomeToTrigger && outcomeToTrigger.length > 0 && outcomeToTrigger.toLowerCase() != "null")
-                {
-                    var outcome = manywho.model.getOutcome(outcomeToTrigger, this.flowKey);
-            
-                    //did we get an outcome
-                    if(outcome)
-                    {
-                        //trigger the outcome
-                        return manywho.component.onOutcome(outcome, null , this.flowKey);
-                    }
-                    else
-                    {
-                        return true;
-                    }
+                //reset the counter
+                this.timerCounter = 0;
+                try {
+                    await this.timeOut();
                 }
-
-                var componentToUpdate = this.getAttribute("refreshComponentId", "")
-                //if we were given a component id to update
-                if(componentToUpdate && componentToUpdate.length > 0)
-                {
-                    //preserve this so the promise handler can get it
-                    var self = this;
-
-                    //get the objectDataRequest object from the model
-                    var request = manywho.model.getComponent(this.props.id,   this.props.flowKey).objectDataRequest;
-
-                    //demand the engine re-gets the model and handle the async promise result
-                    manywho.engine.objectDataRequest(this.props.id, request, this.props.flowKey, 0 , null, null, null, null)
-                    .then(function()
-                    {
-                        var component = manywho.model.getComponent(componentToUpdate, self.props.flowKey);
-                        
-                        //did we get a component
-                        if(component)
-                        {
-                            component.objectData=manywho.model.getComponent(self.props.id, self.props.flowKey).objectData;
-                            manywho.engine.render( self.props.flowKey);
-                        }
-                    });
+                finally {
+                    this.timerCounter = 0;
+                    if(this.timerId === -1 ) {
+                        this.timerId = window.setInterval(this.timerHandler.bind(this), 1000);
+                    }
                 }
             }
+        }
+        else {
+            this.timerCounter = 0; 
+        }
+    }
+
+    async timeOut() {
+        
+            
+        if(this.outcomes["OnRefresh"]) {
+            await this.triggerOutcome("OnRefresh");
+        }   
+        
+        const componentToUpdate = this.getAttribute("refreshComponentId", "")
+        //if we were given a component id to update
+        if(componentToUpdate && componentToUpdate.length > 0)
+        {
+            //preserve this so the promise handler can get it
+            var self = this;
+
+            //get the objectDataRequest object from the model
+            var request = manywho.model.getComponent(this.componentId, this.flowKey).objectDataRequest;
+
+            //demand the engine re-gets the model and handle the async promise result
+            await manywho.engine.objectDataRequest(this.componentId, request, this.flowKey, 0 , null, null, null, null);
+            let component = manywho.model.getComponent(componentToUpdate, this.flowKey);
+                
+            //did we get a component
+            if(component)
+            {
+                component.objectData=manywho.model.getComponent(this.componentId, this.flowKey).objectData;
+                manywho.engine.render( this.props.flowKey);
+            }
+            
         }
     }  
     
     render() 
     {
-        var remaining = parseInt(this.getAttribute("refreshIntervalSeconds", 10 )) - this.timerCounter
+        let content: string = "";
+        if(this.getAttribute("showProgress","").toUpperCase()==="TRUE") {
+            content = "Refreshing in " + (parseInt(this.getAttribute("refreshIntervalSeconds", "10" )) - this.timerCounter) + " seconds";
+        }
         
-        return <div>Triggering outcome in {remaining} seconds</div>   
+        return <div>{content}</div>   
     }
 }
 
 manywho.component.register('OutcomeTimer', OutcomeTimer);
-
-export default OutcomeTimer;
