@@ -9,6 +9,7 @@ declare const manywho: any;
 export default class OutcomeTimer extends FlowComponent {
     // holder for datarefresh timer
     timerId = -1;
+    refreshTimerId = -1;
     timerCounter = 0;
 
     timeoutMS: number;
@@ -37,13 +38,13 @@ export default class OutcomeTimer extends FlowComponent {
     }
 
     async moving(xhr: XMLHttpRequest, request: any) {
-        window.clearInterval(this.timerId);
-        this.timerId = -1;
+        window.clearInterval(this.refreshTimerId);
+        this.refreshTimerId = -1;
     }
 
     async moved(xhr: XMLHttpRequest, request: any) {
         if (this.timerId === -1) {
-            this.timerId = window.setInterval(this.timerHandler.bind(this), 1000);
+            //this.timerId = window.setInterval(this.timerHandler.bind(this), 1000);
         }
     }
 
@@ -57,39 +58,35 @@ export default class OutcomeTimer extends FlowComponent {
 
     startCounting() {
         this.timerCounter = 0;
-        this.timerId = window.setInterval(this.timerHandler.bind(this), this.refreshIntervalMS);
+        if(this.showProgress) {
+            this.timerCounter=this.timeoutMS;
+            this.refreshTimerId = window.setInterval(this.refreshHandler.bind(this), this.refreshIntervalMS);
+        }
+        this.timerId = window.setTimeout(this.timerHandler.bind(this), this.timeoutMS);
+    }
+
+    async refreshHandler() {
+        this.timerCounter -= this.refreshIntervalMS;
+        this.forceUpdate();
     }
 
     async timerHandler() {
-         // if (this.loadingState === eLoadingState.ready) {
-            if (this.timerCounter < this.timeoutMS) {
-                this.timerCounter += this.refreshIntervalMS;
-                if (this.showProgress) {
-                    this.forceUpdate();
-                }
-            } else {
-                // switch off the timer
-                if (this.timerId > -1) {
-                    window.clearInterval(this.timerId);
-                    this.timerId = -1;
-                }
-                // reset the counter
-                this.timerCounter = 0;
-                try {
-                    const result: boolean = await this.timeOut();
-                    if (result) {
-                        this.timerCounter = 0;
-                        if (this.timerId === -1) {
-                            this.timerId = window.setInterval(this.timerHandler.bind(this), 10);
-                        }
-                    }
-                } catch (e) {
-
-                }
+        // switch off the refresh timer
+        this.timerId = -1;
+        if (this.refreshTimerId > -1) {
+            window.clearInterval(this.refreshTimerId);
+            this.refreshTimerId = -1;
+        }
+               
+        try {
+            const result: boolean = await this.timeOut();
+            if(result) {
+                this.startCounting();
             }
-         // } else {
-         //   this.timerCounter = 0;
-         // }
+        } catch (e) {
+
+        }
+
     }
 
     async timeOut(): Promise<boolean> {
@@ -97,7 +94,8 @@ export default class OutcomeTimer extends FlowComponent {
         if (this.outcomes[this.outcomeName]) {
             this.triggerOutcome(this.outcomeName);
             return false;
-        } else {
+        } 
+        else {
             // if we were given a component id to update
             if (this.componentToUpdate && this.componentToUpdate.length > 0) {
                 // preserve this so the promise handler can get it
@@ -123,7 +121,7 @@ export default class OutcomeTimer extends FlowComponent {
     render() {
         let content: string = '';
         if (this.showProgress) {
-            content = 'Refreshing in ' + (parseInt(this.getAttribute('refreshIntervalSeconds', '10')) - this.timerCounter) + ' seconds';
+            content = 'Refreshing in ' + (this.timerCounter/1000) + ' seconds';
         }
 
         return <div>{content}</div>;

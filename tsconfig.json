@@ -8,6 +8,7 @@
         "esnext",
         "es2015"
       ],
+      "sourceMap": true,
       "allowJs": true,
       "skipLibCheck": false,
       "esModuleInterop": true,
