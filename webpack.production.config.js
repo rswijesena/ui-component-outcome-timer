@@ -1,6 +1,5 @@
 const path = require('path');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const WriteFilePlugin = require('write-file-webpack-plugin');
 const flow = require('./package.json').flow;
 
 module.exports = function(env) {
@@ -10,28 +9,15 @@ module.exports = function(env) {
             filename: flow.filenames.js,
             path: path.resolve(__dirname, 'build')
         },
-        devtool: 'inline-source-map',
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".json"]
         },
         mode: 'production',
         module: {
             rules: [
-                {
-                    test: /\.tsx?$/,
-                    enforce: 'pre',
-                    use: [
-                        {
-                            loader: 'tslint-loader',
-                            options: {
-                                fix: true
-                            }
-                        }
-                    ]
-                },
                 { 
                     test: /\.tsx?$/, 
-                    loader: "awesome-typescript-loader" 
+                    loader: "ts-loader" 
                 },
                 { 
                     test: /\.js$/, 
@@ -52,7 +38,6 @@ module.exports = function(env) {
             "react-dom": "ReactDOM"
         },
         plugins: [
-            new WriteFilePlugin(),
             new MiniCssExtractPlugin({ filename: flow.filenames.css })
         ],
     }
