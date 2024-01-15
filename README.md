@@ -5,31 +5,13 @@ A component that triggers an outcome and/or forces another component to update a
 
 ## Setup
 
-- Grab the files from the /dist folder and import into your tenant.
+- Grab the files from the /build folder and import into your tenant assest.
 
-- Add the files to your player code like this: -
+- Create a new custom component and name it as "outcometimer"
 
-        requires: ['core', 'bootstrap3'],
-        customResources: [
-                'https://s3.amazonaws.com/files-manywho-com/tenant-id/OutcomeTimer.js'
-                ],
+- Add Below Attributes into your custom component.
 
-
-- Add a component to your page, any type, save it then change it's "componentType" to "OutcomeTimer" in the metadata editor and save it.
-e.g. 
-            "componentType": "OutcomeTimer",
-
-
-If you have an outcome attached to the component named "OnRefresh" then this will be triggered at timeout
-
-
-## Extra Configuration
-
-You can add attributes to the component to control it's appearance: -
-
-- showProgress		        true/false - shows or hides the progress bar
-
-- refreshIntervalSeconds	the number of seconds between updates 1 - xxx
-
-- refreshComponentId	        the id of a component to trigger to refesh its data 
-Note:  The component acting as the timer MUST have it's datasource set to the same thing as the target component and be set to get it's data from a service not a list.  The timer retrieves the new data and pushes it to the target component.
+        outcomeName - name of your outcome that needs to re-direct after interval
+        showProgress -  true/false values to show/hide progress of the interval counter
+        timeoutMilliSeconds - interval counter in milliseconds
+        
