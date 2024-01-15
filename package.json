@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "flow-component-model": "^1.9.10",
-    "react": "^17.3.2",
+    "react": "^18.3.2",
     "buffer": "^6.0.3",
     "stream": "0.0.2",
     "timers": "^0.1.1"

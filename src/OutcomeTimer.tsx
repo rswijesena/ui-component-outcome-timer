@@ -22,9 +22,10 @@ export default class OutcomeTimer extends FlowComponent {
         super(props);
         this.moving = this.moving.bind(this);
         this.moved = this.moved.bind(this);
-
+        
         this.refreshIntervalMS = parseInt(this.getAttribute('refreshIntervalMilliSeconds', '1000'));
         this.timeoutMS = parseInt(this.getAttribute('timeoutMilliSeconds', '5000'));
+        this.timerCounter = this.timeoutMS
         this.outcomeName = this.getAttribute('outcomeName');
         this.componentToUpdate = this.getAttribute('refreshComponentId', '');
         this.showProgress = this.getAttribute('showProgress', '').toLowerCase() === 'true';
