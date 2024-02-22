@@ -1,5 +1,5 @@
 {
-  "name": "outcometimer",
+  "name": "SimpleOutcomeTimer",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -39,8 +39,8 @@
   },
   "flow": {
     "filenames": {
-      "js": "OutcomeTimer.js",
-      "css": "OutcomeTimer.css"
+      "js": "SimpleOutcomeTimer.js",
+      "css": "SimpleOutcomeTimer.css"
     }
   }
 }

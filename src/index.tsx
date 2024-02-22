@@ -1,1 +1,1 @@
-export * from './OutcomeTimer';
+export * from './SimpleOutcomeTimer';
